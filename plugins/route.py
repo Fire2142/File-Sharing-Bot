@@ -1,5 +1,5 @@
-#(©)Codexbotz
-#rymme
+#(©)MrGhostsx
+#Tech_Shreyansh29
 
 from aiohttp import web
 
