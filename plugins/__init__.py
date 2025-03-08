@@ -1,5 +1,5 @@
-#(©)Codexbotz
-#@iryme
+#(©)MrGhostsx
+#@Tech_Shreyansh29
 
 from aiohttp import web
 from .route import routes
