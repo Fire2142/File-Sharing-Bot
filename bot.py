@@ -1,18 +1,15 @@
-# (©) MrGhostsx
-
 from aiohttp import web
 from plugins import web_server
 import pyromod.listen
-from pyrogram import Client
+from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 import sys
+import time
+import json
+import requests
 from datetime import datetime, timedelta
-import asyncio
 
-from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, FORCE_SUB_CHANNEL, CHANNEL_ID, PORT
-
-# Store verified users with expiration time
-verified_users = {}
+from config import API_HASH, APP_ID, LOGGER, TG_BOT_TOKEN, TG_BOT_WORKERS, FORCE_SUB_CHANNEL, CHANNEL_ID, PORT, SHORTENER_API, SHORTENER_URL
 
 ascii_art = """
  _   .-')    _  .-')               ('-. .-.               .-')    .-') _    
@@ -25,6 +22,9 @@ ascii_art = """
  |  |   |  | |  |\  \  |  '--'  | |  | |  |   `'  '-'  '\       /   |  |    
  `--'   `--' `--' '--'  `------'  `--' `--'     `-----'  `-----'    `--'    
 """
+
+# Dictionary to store verification timestamps
+verified_users = {}
 
 class Bot(Client):
     def __init__(self):
@@ -43,21 +43,7 @@ class Bot(Client):
         usr_bot_me = await self.get_me()
         self.uptime = datetime.now()
 
-        user_id = usr_bot_me.id
-        current_time = datetime.now()
-
-        # Check if user is already verified
-        if user_id in verified_users:
-            expire_time = verified_users[user_id]
-            if current_time < expire_time:
-                print("User already verified. Skipping verification.")
-            else:
-                print("Verification expired! Re-verifying user...")
-                await self.verify_user(user_id)
-        else:
-            print("User not verified. Performing verification...")
-            await self.verify_user(user_id)
-
+        # Force Subscription Check
         if FORCE_SUB_CHANNEL:
             try:
                 link = (await self.get_chat(FORCE_SUB_CHANNEL)).invite_link
@@ -65,13 +51,12 @@ class Bot(Client):
                     await self.export_chat_invite_link(FORCE_SUB_CHANNEL)
                     link = (await self.get_chat(FORCE_SUB_CHANNEL)).invite_link
                 self.invitelink = link
-            except Exception as a:
-                self.LOGGER(__name__).warning(a)
+            except Exception as e:
+                self.LOGGER(__name__).warning(e)
                 self.LOGGER(__name__).warning("Bot can't Export Invite link from Force Sub Channel!")
-                self.LOGGER(__name__).warning(f"Please Double check the FORCE_SUB_CHANNEL value and Make sure Bot is Admin in channel with Invite Users via Link Permission, Current Force Sub Channel Value: {FORCE_SUB_CHANNEL}")
-                self.LOGGER(__name__).info("\nBot Stopped. Join https://t.me/Tech_Shreyansh for support")
                 sys.exit()
 
+        # Verify Database Channel
         try:
             db_channel = await self.get_chat(CHANNEL_ID)
             self.db_channel = db_channel
@@ -79,18 +64,15 @@ class Bot(Client):
             await test.delete()
         except Exception as e:
             self.LOGGER(__name__).warning(e)
-            self.LOGGER(__name__).warning(f"Make Sure bot is Admin in DB Channel, and Double check the CHANNEL_ID Value, Current Value {CHANNEL_ID}")
-            self.LOGGER(__name__).info("\nBot Stopped. Join https://t.me/Tech_Shreyansh for support")
+            self.LOGGER(__name__).warning("Make sure bot is admin in DB Channel!")
             sys.exit()
 
         self.set_parse_mode(ParseMode.HTML)
-        self.LOGGER(__name__).info(f"Bot Running..!\n\nCreated by \nhttps://t.me/Tech_Shreyansh29")
+        self.LOGGER(__name__).info(f"Bot Running..!\n\nCreated by \nhttps://t.me/YourChannel")
         print(ascii_art)
-        print("Welcome to MrGhostsx File Sharing Bot")
+        print("Welcome to File Sharing Bot")
 
-        self.username = usr_bot_me.username
-
-        # Web-response
+        # Web-server
         app = web.AppRunner(await web_server())
         await app.setup()
         bind_address = "0.0.0.0"
@@ -100,14 +82,33 @@ class Bot(Client):
         await super().stop()
         self.LOGGER(__name__).info("Bot stopped.")
 
-    async def verify_user(self, user_id):
-        verification_link = "https://your-shortener-link.com/verify"
-        print(f"User {user_id} needs to verify. Sending link: {verification_link}")
+# Shortener Verification
+async def verify_user(client, message):
+    user_id = message.from_user.id
+    current_time = time.time()
 
-        # Simulating waiting for user verification (Replace with real API response check)
-        await asyncio.sleep(5)  # Wait for verification (simulated)
+    if user_id in verified_users:
+        last_verified_time = verified_users[user_id]
+        if current_time - last_verified_time < 21600:  # 6 hours
+            await message.reply("✅ You are already verified!")
+            return True
 
-        # Store verification for 6 hours
-        verified_users[user_id] = datetime.now() + timedelta(hours=6)
-        print(f"User {user_id} verified successfully! Access granted for 6 hours.")
+    short_url = f"{SHORTENER_URL}?api={SHORTENER_API}&url=https://t.me/{client.username}?start=verify"
+    await message.reply(f"🔗 Please verify by clicking this link:\n\n{short_url}\n\nAfter verification, click /start.")
+    return False
 
+# Command to start bot
+@Client.on_message(filters.command("start"))
+async def start(client, message):
+    if await verify_user(client, message):
+        await message.reply("Welcome! You can now access the stored files.")
+
+# Intercepting file access
+@Client.on_message(filters.text & filters.private)
+async def file_access(client, message):
+    if await verify_user(client, message):
+        await message.reply("Here is your requested file!")
+
+if __name__ == "__main__":
+    Bot().run()
+ 
