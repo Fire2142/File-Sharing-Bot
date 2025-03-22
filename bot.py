@@ -82,7 +82,7 @@ class Bot(Client):
         await super().stop()
         self.LOGGER(__name__).info("Bot stopped.")
 
-# Shortener Verification
+# Shortener Verification Function
 async def verify_user(client, message):
     user_id = message.from_user.id
     current_time = time.time()
@@ -90,9 +90,9 @@ async def verify_user(client, message):
     if user_id in verified_users:
         last_verified_time = verified_users[user_id]
         if current_time - last_verified_time < 21600:  # 6 hours
-            await message.reply("✅ You are already verified!")
-            return True
+            return True  # User is already verified
 
+    # Generate Shortener Link for Verification
     short_url = f"{SHORTENER_URL}?api={SHORTENER_API}&url=https://t.me/{client.username}?start=verify"
     await message.reply(f"🔗 Please verify by clicking this link:\n\n{short_url}\n\nAfter verification, click /start.")
     return False
@@ -101,13 +101,15 @@ async def verify_user(client, message):
 @Client.on_message(filters.command("start"))
 async def start(client, message):
     if await verify_user(client, message):
-        await message.reply("Welcome! You can now access the stored files.")
+        await message.reply("✅ Verification Successful! You can now access the stored files.")
 
-# Intercepting file access
-@Client.on_message(filters.text & filters.private)
+# File Access with Verification
+@Client.on_message(filters.private & ~filters.command("start"))
 async def file_access(client, message):
     if await verify_user(client, message):
-        await message.reply("Here is your requested file!")
+        await message.reply("📂 Here is your requested file!")
+    else:
+        await message.reply("⚠️ Please verify your account using the shortener link first.")
 
 if __name__ == "__main__":
     Bot().run()
