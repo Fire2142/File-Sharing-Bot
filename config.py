@@ -26,7 +26,7 @@ OWNER_ID = int(os.environ.get("OWNER_ID", "6933494624"))
 PORT = os.environ.get("PORT", "8080")
 
 #shortlink
-SHORTENER_URL = True if os.environ.get('SHORTENER_URL', "True") == "True" else False
+VERIFY_MODE = True if os.environ.get('VERIFY_MODE', "True") == "True" else False
 
 SHORTENER_API= os.environ.get("SHORTENER_API","")
 SHORTENER_URL= os.environ.get("SHORTENER_URL","")
