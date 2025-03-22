@@ -25,11 +25,10 @@ OWNER_ID = int(os.environ.get("OWNER_ID", "6933494624"))
 #Port
 PORT = os.environ.get("PORT", "8080")
 
-#shortlink
-VERIFY_MODE = True if os.environ.get('VERIFY_MODE', "True") == "True" else False
-
-SHORTENER_API= os.environ.get("SHORTENER_API","")
-SHORTENER_URL= os.environ.get("SHORTENER_URL","")
+# Your Modiji Url Api Key Here
+MODIJI_API_KEY = os.getenv("MODIJI_API_KEY")
+if not MODIJI_API_KEY:
+    print("⚠️ Warning: MODIJI_API_KEY not set in environment variables")
 
 #Database 
 DB_URI = os.environ.get("DATABASE_URL", "")
