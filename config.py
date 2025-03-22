@@ -25,6 +25,10 @@ OWNER_ID = int(os.environ.get("OWNER_ID", "6933494624"))
 #Port
 PORT = os.environ.get("PORT", "8080")
 
+#shortlink
+SHORTENER_API= int(os.environ.get("SHORTENER_API",""))
+SHORTENER_URL= os.environ.get("SHORTENER_URL","")
+
 #Database 
 DB_URI = os.environ.get("DATABASE_URL", "")
 DB_NAME = os.environ.get("DATABASE_NAME", "MrGhostsx")
